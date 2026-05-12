@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "Password123!"
+      ACCEPT_EULA: "Y"
+    ports: ["1433:1433"]
+    volumes: [rcmdata:/var/opt/mssql]
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Password123!" -Q "SELECT 1" -b -o /dev/null
+      interval: 10s
+      retries: 10
+
+  api:
+    build:
+      context: ./src
+      dockerfile: HealthcareRCM.API/Dockerfile
+    ports: ["5001:8080"]
+    environment:
+      ConnectionStrings__RcmDB: "Server=sqlserver,1433;Database=RcmDB;User Id=sa;Password=Password123!;TrustServerCertificate=True;"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+volumes:
+  rcmdata:
